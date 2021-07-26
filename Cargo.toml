@@ -1,0 +1,14 @@
+[package]
+name = "example-rust-doh"
+version = "0.0.1"
+authors = ["BrooksCunningham"]
+edition = "2018"
+publish = false
+
+[profile.release]
+debug = true
+
+[dependencies]
+fastly = "^0.7.3"
+serde_json = "^1.0.64"
+serde = "1.0.126"
