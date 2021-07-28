@@ -11,8 +11,8 @@ mod fastly_doh;
 pub fn middlware_req_handler(mut req: Request) -> Result<Request, Error> {
     
     //TODO allow for a mechanism to enable or disable functionality via edge dictionaries in a similar way as feature flags.
-    println!("checking for googlebot");
-    req = fastly_doh::googlebot_check(req)?;
+    println!("Doing bots lookup");
+    req = fastly_doh::bot_lookup(req)?;
 
     //Add more integrations...
     Ok(req)

@@ -26,7 +26,7 @@ pub fn reverse_ipv4_lookup(mut req: Request) -> Result<Request, Error> {
         let ipv4_reverse_addr: Ipv4Addr = Ipv4Addr::new(ipv4_vec[0], ipv4_vec[1], ipv4_vec[2], ipv4_vec[3]);
         let hostname_for_reverse_lookup: String = format!("{}{}", &ipv4_reverse_addr.to_string(), ".in-addr.arpa");
 
-        // Test case
+        // Test case - Valid Googlebot
         // let hostname_for_reverse_lookup: String = format!("{}{}", "1.66.249.66", ".in-addr.arpa");
         let ipv4_reverse_lookup: Vec<String> = get_dns_record(&hostname_for_reverse_lookup, "PTR")?;
 
@@ -54,7 +54,41 @@ pub fn googlebot_check(mut req: Request) -> Result<Request, Error> {
             req.set_header("Fastly-Bot", "imposter-bot");
         }
     }
+    return Ok(req)
+}
 
+pub fn bing_bot_check(mut req: Request) -> Result<Request, Error> {
+    //check user-agent
+    //if user-agent is not valid then say the request is an imposter bot.
+    let client_ua = req.get_header_str("user-agent").unwrap();
+    if client_ua.contains("bingbot") {
+        // println!("user-agent contains Googlebot");
+        req = reverse_ipv4_lookup(req)?;
+        if req.get_header_str("Fastly-Reverse-Lookup").unwrap().contains("search.msn.com") {
+            // If the lookup is valid, then set the header good-bot
+            req.set_header("Fastly-Bot", "good-bot");
+        } else {
+            // If the lookup  is NOT valid, then set the header imposter-bot
+            req.set_header("Fastly-Bot", "imposter-bot");
+        }
+    }
+    return Ok(req)
+}
+
+pub fn baidu_bot_check(mut req: Request) -> Result<Request, Error> {
+    //check user-agent
+    //if user-agent is not valid then say the request is an imposter bot.
+    let client_ua = req.get_header_str("user-agent").unwrap();
+    if client_ua.contains("Baiduspider") {
+        req = reverse_ipv4_lookup(req)?;
+
+        match req.get_header_str("Fastly-Reverse-Lookup").unwrap() {
+            reverse_lookup if reverse_lookup.contains("crawl.baidu.com") => {
+                req.set_header("Fastly-Bot", "good-bot");
+            }
+            _ => req.set_header("Fastly-Bot", "imposter-bot")
+        }
+    }
     return Ok(req)
 }
 
@@ -117,4 +151,29 @@ pub fn get_dns_record(hostname: &str, record_type: &str) -> Result<Vec<String>, 
     }
 
     Ok(dns_answers)
+}
+
+//
+pub fn bot_lookup(mut req: Request) -> Result<Request, Error> {
+    match req.get_header_str("user-agent") {
+        
+        // Googlebot check, https://developers.google.com/search/docs/advanced/crawling/verifying-googlebot
+        Some(req_user_agent) if req_user_agent.contains("Googlebot") => {
+            req = googlebot_check(req)?;
+            return Ok(req)
+        }
+        // Bingbot, https://www.bing.com/webmasters/help/how-to-verify-bingbot-3905dc26
+        Some(req_user_agent) if req_user_agent.contains("bingbot") => {
+            req = bing_bot_check(req)?;
+            return Ok(req)
+        }
+        // baidu, https://help.baidu.com/question?prod_id=99&class=0&id=3001
+        Some(req_user_agent) if req_user_agent.contains("Baiduspider") => {
+            req = baidu_bot_check(req)?;
+            return Ok(req)
+        }
+        _ => {
+            return Ok(req)
+        }
+    }
 }

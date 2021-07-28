@@ -1,9 +1,9 @@
 //! Default Compute@Edge template program.
 
-use fastly::http::{header, Method, StatusCode};
+use fastly::http::{StatusCode};
 use fastly::{mime, Error, Request, Response};
 // use std::net::{IpAddr, Ipv4Addr};
-use serde_json;
+// use serde_json;
 // use serde::Deserialize;
 
 mod fastly_middleware;
@@ -25,25 +25,6 @@ const HTTPBIN_BACKEND: &str = "httpbin";
 fn main(mut req: Request) -> Result<Response, Error> {
     
     req = fastly_middleware::middlware_req_handler(req)?;
-
-    // Make any desired changes to the client request.
-    // req.set_header(header::HOST, "dns.google");
-
-    // Filter request methods...
-    match req.get_method() {
-        // Allow GET and HEAD requests.
-        &Method::GET | &Method::HEAD => (),
-
-        // Accept PURGE requests; it does not matter to which backend they are sent.
-        // m if m == "PURGE" => return Ok(req.send(BACKEND_NAME)?),
-
-        // Deny anything else.
-        _ => {
-            return Ok(Response::from_status(StatusCode::METHOD_NOT_ALLOWED)
-                .with_header(header::ALLOW, "GET, HEAD")
-                .with_body_text_plain("This method is not allowed\n"))
-        }
-    };
 
     // Pattern match on the path.
     match req.get_path() {
